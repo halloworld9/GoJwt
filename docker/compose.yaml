@@ -1,0 +1,36 @@
+networks:
+  backend:
+    name: backend
+    driver: bridge
+
+services:
+  database:
+    image: postgres:16.3
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    user: postgres
+    volumes:
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+    networks:
+      - backend
+    env_file:
+      - db.env
+    ports:
+      - "5433:5432"
+
+  web:
+    networks:
+      - backend
+    build:
+      dockerfile: docker/Dockerfile
+      context: ..
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file:
+      - docker.env
+    ports:
+      - "8000:8000"
